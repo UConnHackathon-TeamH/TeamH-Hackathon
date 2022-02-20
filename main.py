@@ -49,9 +49,9 @@ STREAM = CSVStream(
 )
 header_list = ["eth-usd", "price", "volume", "timestamp"]
 data_2 = pd.read_csv("eth.usd.2018.csv", names = header_list)
-data_2 = data_2.truncate(after = 100000)
 
-import keras
+import tensorflow as tf
+from tensorflow import keras
 model = keras.models.load_model("DNN_model")
 
 import pickle
@@ -114,7 +114,7 @@ class Predict:
 
         # Determine position
         #df = df.loc[self.start_time:].copy() # remove all historical data
-        df["position"] = np.where(df.proba < 0.47, 1, np.nan)
+        df["position"] = np.where(df.proba < 0.47, -1, np.nan)
         df["position"] = np.where(df.proba > 0.53, 1, df.position)
         df["position"] = df.position.ffill().fillna(0)
 
@@ -160,25 +160,33 @@ def algorithm(csv_row: str):
     #print(probability)
     if probability > 0.53:
         if predict.remaining_fund >= lst[0][1]:
-            response = yield Trade("BUY", ticker, Decimal(1))
+            response = yield Trade(BUY, ticker, Decimal(1))
             if ticker == 'btc':
+                print("Buy order placed")
                 predict.btc_position += 1
             else:
+                print("Buy order placed")
                 predict.eth_position += 1
         else:
+            print("Hold")
             response = yield None
     elif probability < 0.47:
         if ticker == 'btc':
             if predict.btc_position >= 1:
-                response = yield Trade("SELL", ticker, Decimal(1))
+                print("Sell order placed")
+                response = yield Trade(SELL, ticker, Decimal(1))
             else:
+                print("Hold")
                 response = yield None
-        if ticker == 'eth':
+        elif ticker == 'eth':
             if predict.eth_position >= 1:
-                response = yield Trade("SELL", ticker, Decimal(1))
+                print("Sell order placed")
+                response = yield Trade(SELL, ticker, Decimal(1))
             else:
+                print("Hold")
                 response = yield None
     else:
+        print("Hold")
         response = yield None
     
     #response = yield None # example: Trade(BUY, 'xbt', Decimal(1))
